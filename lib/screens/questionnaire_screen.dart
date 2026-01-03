@@ -19,12 +19,14 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
   Future<void> _submitData() async {
     if (_ageController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter your age')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter your age')));
       return;
     }
 
     setState(() => _isLoading = true);
-    
+
     try {
       // Using the function we wrote earlier in auth_service.dart
       await saveMedicalHistory(
@@ -47,7 +49,9 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
-      appBar: AppBar(title: Text('Medical Profile', style: GoogleFonts.outfit())),
+      appBar: AppBar(
+        title: Text('Medical Profile', style: GoogleFonts.outfit()),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -55,20 +59,33 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
             TextField(
               controller: _ageController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Age', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              decoration: InputDecoration(
+                labelText: 'Age',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
             const SizedBox(height: 20),
             DropdownButtonFormField<String>(
               initialValue: _selectedGender,
               items: ['Male', 'Female', 'Other'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
               onChanged: (val) => setState(() => _selectedGender = val!),
-              decoration: const InputDecoration(labelText: 'Gender', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Gender',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: _conditionsController,
               maxLines: 3,
-              decoration: InputDecoration(labelText: 'Existing Conditions (Optional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              decoration: InputDecoration(
+                labelText: 'Existing Conditions (Optional)',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
             const SizedBox(height: 30),
             ElevatedButton(

@@ -75,19 +75,13 @@ class _SignupScreenState extends State<SignupScreen> {
 
       if (mounted) {
         if (response.user != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account created successfully! Please log in.')),
-          );
-          context.go('/login');
+          context.go('/questionnaire');
         }
       }
     } on AuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
@@ -95,6 +89,47 @@ class _SignupScreenState extends State<SignupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('An unexpected error occurred. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await AuthService().signInWithGoogle();
+
+      if (mounted) {
+        if (response.user != null) {
+          context.go('/questionnaire');
+        }
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.toString().contains('cancelled')
+                  ? 'Google Sign-In was cancelled'
+                  : 'An unexpected error occurred. Please try again.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -117,7 +152,10 @@ class _SignupScreenState extends State<SignupScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.textLight),
           onPressed: () => context.pop(),
         ),
-        title: Text('Sign Up', style: GoogleFonts.outfit(color: AppColors.textLight)),
+        title: Text(
+          'Sign Up',
+          style: GoogleFonts.outfit(color: AppColors.textLight),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -131,7 +169,9 @@ class _SignupScreenState extends State<SignupScreen> {
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: 'Full Name',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 prefixIcon: const Icon(Icons.person_outline),
               ),
             ),
@@ -140,7 +180,9 @@ class _SignupScreenState extends State<SignupScreen> {
               controller: _emailController,
               decoration: InputDecoration(
                 labelText: 'Email',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 prefixIcon: const Icon(Icons.email_outlined),
               ),
             ),
@@ -150,11 +192,15 @@ class _SignupScreenState extends State<SignupScreen> {
               obscureText: _obscurePassword,
               decoration: InputDecoration(
                 labelText: 'Password',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                   ),
                   onPressed: () {
                     setState(() {
@@ -164,7 +210,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
               ),
             ),
-             const SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Checkbox(
@@ -187,11 +233,71 @@ class _SignupScreenState extends State<SignupScreen> {
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: _isLoading 
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : Text('Create Account', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      'Create Account',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'OR',
+                    style: GoogleFonts.outfit(
+                      color: AppColors.textLight.withOpacity(0.6),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const Expanded(child: Divider()),
+              ],
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: _isLoading ? null : _signInWithGoogle,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                side: BorderSide(color: AppColors.textLight.withOpacity(0.3)),
+              ),
+              icon: Image.network(
+                'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                height: 24,
+                width: 24,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback to a simple icon if image fails to load
+                  return const Icon(Icons.login, size: 24);
+                },
+              ),
+              label: Text(
+                'Continue with Google',
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textLight,
+                ),
+              ),
             ),
           ],
         ),
