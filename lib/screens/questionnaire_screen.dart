@@ -35,7 +35,9 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
       if (mounted) context.go('/dashboard');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving: $e')));
+      }
     } finally {
       setState(() => _isLoading = false);
     }
@@ -71,8 +73,27 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
             const SizedBox(height: 30),
             ElevatedButton(
               onPressed: _isLoading ? null : _submitData,
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, minimumSize: const Size(double.infinity, 50)),
-              child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Complete Profile'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                    )
+                  : Text(
+                      'Complete Profile',
+                      style: GoogleFonts.outfit(
+                        textStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),
