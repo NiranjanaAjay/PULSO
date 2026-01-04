@@ -154,15 +154,17 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textLight),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).iconTheme.color,
+          ),
           onPressed: () => context.pop(),
         ),
         title: Text(
           'Sign Up',
-          style: GoogleFonts.outfit(color: AppColors.textLight),
+          style: GoogleFonts.inter(color: AppColors.textLight),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -175,23 +177,17 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 20),
             TextField(
               controller: _nameController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Full Name',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.person_outline),
+                prefixIcon: Icon(Icons.person_outline),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _emailController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Email',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.email_outlined),
+                prefixIcon: Icon(Icons.email_outlined),
               ),
             ),
             const SizedBox(height: 16),
@@ -200,9 +196,6 @@ class _SignupScreenState extends State<SignupScreen> {
               obscureText: _obscurePassword,
               decoration: InputDecoration(
                 labelText: 'Password',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -229,7 +222,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 Expanded(
                   child: Text(
                     'I accept the Terms of Service & Privacy Policy',
-                    style: GoogleFonts.outfit(fontSize: 12),
+                    style: GoogleFonts.inter(fontSize: 12),
                   ),
                 ),
               ],
@@ -237,14 +230,6 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _isLoading ? null : _signUp,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
               child: _isLoading
                   ? const SizedBox(
                       width: 24,
@@ -254,13 +239,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         strokeWidth: 2,
                       ),
                     )
-                  : Text(
-                      'Create Account',
-                      style: GoogleFonts.outfit(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  : const Text('Create Account'),
             ),
             const SizedBox(height: 24),
             Row(
@@ -270,7 +249,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
                     'OR',
-                    style: GoogleFonts.outfit(
+                    style: GoogleFonts.inter(
                       color: AppColors.textLight.withOpacity(0.6),
                       fontWeight: FontWeight.w500,
                     ),
@@ -282,30 +261,15 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 24),
             OutlinedButton.icon(
               onPressed: _isLoading ? null : _signInWithGoogle,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                side: BorderSide(color: AppColors.textLight.withOpacity(0.3)),
-              ),
               icon: Image.network(
                 'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
                 height: 24,
                 width: 24,
                 errorBuilder: (context, error, stackTrace) {
-                  // Fallback to a simple icon if image fails to load
                   return const Icon(Icons.login, size: 24);
                 },
               ),
-              label: Text(
-                'Continue with Google',
-                style: GoogleFonts.outfit(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textLight,
-                ),
-              ),
+              label: const Text('Continue with Google'),
             ),
           ],
         ),

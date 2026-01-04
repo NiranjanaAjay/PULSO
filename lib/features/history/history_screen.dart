@@ -9,11 +9,10 @@ class HistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         title: Text(
           "History",
-          style: GoogleFonts.outfit(
+          style: GoogleFonts.inter(
             fontWeight: FontWeight.bold,
             color: AppColors.textLight,
           ),
@@ -45,17 +44,24 @@ class HistoryScreen extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: isAbnormal ? AppColors.error.withOpacity(0.1) : AppColors.success.withOpacity(0.1),
+            color: isAbnormal
+                ? AppColors.error.withOpacity(0.1)
+                : AppColors.surfaceHighlight.withOpacity(
+                    0.2,
+                  ), // Neutral/Pink for normal
             shape: BoxShape.circle,
           ),
           child: Icon(
             Icons.monitor_heart,
-            color: isAbnormal ? AppColors.error : AppColors.success,
+            color: isAbnormal
+                ? AppColors.error
+                : AppColors
+                      .primary, // Using primary text color or similar for normal to stay on brand
           ),
         ),
         title: Text(
           isAbnormal ? "Irregular Rhythm" : "Normal Sinus Rhythm",
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,14 +69,18 @@ class HistoryScreen extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               "Oct ${12 - index}, 2025 • 30s Recording",
-              style: GoogleFonts.outfit(fontSize: 12),
+              style: GoogleFonts.inter(fontSize: 12),
             ),
-             if (isAbnormal)
+            if (isAbnormal)
               Padding(
                 padding: const EdgeInsets.only(top: 4.0),
                 child: Text(
                   "Action Required",
-                  style: GoogleFonts.outfit(color: AppColors.error, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.inter(
+                    color: AppColors.error,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
           ],
@@ -78,7 +88,7 @@ class HistoryScreen extends StatelessWidget {
         trailing: const Icon(Icons.chevron_right, color: AppColors.textLight),
         onTap: () {
           // Navigate to full report (reuse detailed report for now)
-          context.go('/insights/report'); 
+          context.go('/insights/report');
         },
       ),
     );

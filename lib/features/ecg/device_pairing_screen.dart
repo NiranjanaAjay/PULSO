@@ -163,9 +163,6 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
             if (!_isScanning)
               OutlinedButton(
                 onPressed: _restartDiscovery,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.primary),
-                ),
                 child: const Text("Scan Again"),
               ),
             if (_isScanning)
@@ -194,11 +191,9 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ..._bondedDevices
-                        .map(
-                          (device) => _buildDeviceTile(device, isPaired: true),
-                        )
-                        ,
+                    ..._bondedDevices.map(
+                      (device) => _buildDeviceTile(device, isPaired: true),
+                    ),
                     const SizedBox(height: 16),
                   ],
 
@@ -227,9 +222,7 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
                       ),
                     )
                   else
-                    ..._discoveryResults
-                        .map((r) => _buildDeviceTile(r.device))
-                        ,
+                    ..._discoveryResults.map((r) => _buildDeviceTile(r.device)),
                 ],
               ),
             ),
@@ -258,13 +251,6 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
         subtitle: Text(device.address),
         trailing: ElevatedButton(
           onPressed: () => _onDeviceSelected(device),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
           child: const Text("Select"),
         ),
       ),

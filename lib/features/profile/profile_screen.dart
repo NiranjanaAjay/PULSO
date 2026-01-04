@@ -41,7 +41,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.backgroundLight,
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
     }
 
@@ -53,18 +55,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final conditions = medical?['existing_conditions'] ?? 'None';
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         title: Text(
           "Profile",
-          style: GoogleFonts.outfit(
+          style: GoogleFonts.inter(
             fontWeight: FontWeight.bold,
-            color: AppColors.textLight,
+            color: Theme.of(context).textTheme.titleLarge?.color,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.textLight),
+            icon: Icon(Icons.refresh, color: Theme.of(context).iconTheme.color),
             onPressed: () {
               setState(() => _isLoading = true);
               _fetchProfile();
@@ -85,17 +86,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     backgroundColor: AppColors.primary,
                     child: Text(
                       name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                      style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     name,
-                    style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.inter(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Text(
                     "$gender, $age yrs",
-                    style: GoogleFonts.outfit(color: Colors.grey),
+                    style: GoogleFonts.inter(color: Colors.grey),
                   ),
                 ],
               ),
@@ -106,7 +114,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildSectionHeader("Medical Profile"),
             _buildSettingItem("Known Conditions", conditions),
             _buildSettingItem("Medications", "None"), // Placeholder for now
-             _buildSettingItem("Emergency Contact", "+1 555-0123"), // Placeholder
+            _buildSettingItem(
+              "Emergency Contact",
+              "+1 555-0123",
+            ), // Placeholder
 
             const SizedBox(height: 24),
             _buildSectionHeader("App Settings"),
@@ -114,18 +125,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildSwitchItem("Dark Mode", false), // Logic to be implemented
             _buildActionItem("Privacy & Security", Icons.lock_outline),
             _buildActionItem("Help & Support", Icons.help_outline),
-            
+
             const SizedBox(height: 32),
             OutlinedButton(
               onPressed: _logout,
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.error,
                 side: const BorderSide(color: AppColors.error),
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 16,
+                ),
               ),
               child: const Text("Log Out"),
             ),
-             const SizedBox(height: 32),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -139,10 +153,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         alignment: Alignment.centerLeft,
         child: Text(
           title,
-          style: GoogleFonts.outfit(
+          style: GoogleFonts.inter(
             fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary,
+            fontWeight: FontWeight.w700, // Bold
+            color: Theme.of(
+              context,
+            ).textTheme.titleLarge?.color, // Black anchor
           ),
         ),
       ),
@@ -153,12 +169,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
+        title: Text(
+          title,
+          style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+        ),
         trailing: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 200),
           child: Text(
-            value, 
-            style: GoogleFonts.outfit(color: Colors.grey),
+            value,
+            style: GoogleFonts.inter(color: Colors.grey),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -166,11 +185,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-   Widget _buildSwitchItem(String title, bool value) {
+  Widget _buildSwitchItem(String title, bool value) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: SwitchListTile(
-        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
+        title: Text(
+          title,
+          style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+        ),
         value: value,
         onChanged: (v) {},
         activeThumbColor: AppColors.primary,
@@ -179,11 +201,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildActionItem(String title, IconData icon) {
-     return Card(
+    return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(icon, color: AppColors.textLight),
-        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
+        leading: Icon(icon, color: Theme.of(context).iconTheme.color),
+        title: Text(
+          title,
+          style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+        ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () {},
       ),

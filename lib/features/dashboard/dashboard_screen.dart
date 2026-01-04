@@ -9,24 +9,30 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         title: Text(
           "Dashboard",
-          style: GoogleFonts.outfit(
+          style: GoogleFonts.inter(
             fontWeight: FontWeight.bold,
-            color: AppColors.textLight,
+            color: Theme.of(context).textTheme.titleLarge?.color,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none, color: AppColors.textLight),
+            icon: Icon(
+              Icons.notifications_none,
+              color: Theme.of(context).iconTheme.color,
+            ),
             onPressed: () {},
           ),
-          IconButton( // Settings
-             icon: const Icon(Icons.settings_outlined, color: AppColors.textLight),
-             onPressed: () => context.go('/profile'), // Or push settings
-          )
+          IconButton(
+            // Settings
+            icon: Icon(
+              Icons.settings_outlined,
+              color: Theme.of(context).iconTheme.color,
+            ),
+            onPressed: () => context.go('/profile'), // Or push settings
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -37,35 +43,35 @@ class DashboardScreen extends StatelessWidget {
             // Today's Status Card
             _buildStatusCard(),
             const SizedBox(height: 16),
-            
+
             // Live Connection Card
             _buildConnectionCard(context),
             const SizedBox(height: 16),
-            
+
             // Key Metrics Strip
             _buildMetricsStrip(),
             const SizedBox(height: 24),
-            
+
             // Quick Actions
             Text(
               "Quick Actions",
-              style: GoogleFonts.outfit(
+              style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textLight,
+                color: Theme.of(context).iconTheme.color,
               ),
             ),
             const SizedBox(height: 12),
             _buildQuickActions(context),
-            const SizedBox(height: 24),
-            
+            const SizedBox(height: 32),
+
             // Recent Insights
             Text(
               "Recent Insights",
-              style: GoogleFonts.outfit(
+              style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textLight,
+                color: Theme.of(context).iconTheme.color,
               ),
             ),
             const SizedBox(height: 12),
@@ -87,14 +93,17 @@ class DashboardScreen extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     "Stable",
-                    style: GoogleFonts.outfit(
+                    style: GoogleFonts.inter(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
@@ -107,7 +116,7 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               "Your heart rhythm appears normal.",
-              style: GoogleFonts.outfit(
+              style: GoogleFonts.inter(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -116,7 +125,7 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               "Last AI Assessment: Today, 9:41 AM",
-              style: GoogleFonts.outfit(
+              style: GoogleFonts.inter(
                 color: Colors.white.withOpacity(0.8),
                 fontSize: 12,
               ),
@@ -139,7 +148,10 @@ class DashboardScreen extends StatelessWidget {
                 color: AppColors.backgroundLight,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.bluetooth_searching, color: AppColors.textLight),
+              child: const Icon(
+                Icons.bluetooth_searching,
+                color: AppColors.textLight,
+              ),
             ),
             const SizedBox(width: 16),
             Column(
@@ -147,14 +159,14 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 Text(
                   "Device Not Connected",
-                  style: GoogleFonts.outfit(
+                  style: GoogleFonts.inter(
                     fontWeight: FontWeight.bold,
                     color: AppColors.textLight,
                   ),
                 ),
                 Text(
                   "Pair your ECG device",
-                  style: GoogleFonts.outfit(
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.textLight.withOpacity(0.6),
                   ),
@@ -166,7 +178,7 @@ class DashboardScreen extends StatelessWidget {
               onPressed: () {}, // TODO: Open Pairing
               child: Text(
                 "Connect",
-                style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -178,11 +190,15 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildMetricsStrip() {
     return Row(
       children: [
-        Expanded(child: _buildMetricItem("Heart Rate", "72 bpm", Icons.favorite)),
+        Expanded(
+          child: _buildMetricItem("Heart Rate", "72 bpm", Icons.favorite),
+        ),
         const SizedBox(width: 12),
         Expanded(child: _buildMetricItem("HRV", "45 ms", Icons.graphic_eq)),
         const SizedBox(width: 12),
-        Expanded(child: _buildMetricItem("Stress", "Low", Icons.sentiment_satisfied)),
+        Expanded(
+          child: _buildMetricItem("Stress", "Low", Icons.sentiment_satisfied),
+        ),
       ],
     );
   }
@@ -201,7 +217,7 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.outfit(
+            style: GoogleFonts.inter(
               fontWeight: FontWeight.bold,
               fontSize: 16,
               color: AppColors.textLight,
@@ -209,7 +225,7 @@ class DashboardScreen extends StatelessWidget {
           ),
           Text(
             label,
-            style: GoogleFonts.outfit(
+            style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.textLight.withOpacity(0.6),
             ),
@@ -222,16 +238,40 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildQuickActions(BuildContext context) {
     return Row(
       children: [
-        _buildActionButton(context, "Start ECG", Icons.play_arrow, AppColors.primary, () => context.go('/ecg')),
+        _buildActionButton(
+          context,
+          "Start ECG",
+          Icons.play_arrow,
+          AppColors.primary,
+          () => context.go('/ecg'),
+        ),
         const SizedBox(width: 12),
-        _buildActionButton(context, "Consult AI", Icons.auto_awesome, AppColors.tertiary, () => context.go('/insights')), // Or specific chat route
+        _buildActionButton(
+          context,
+          "Consult AI",
+          Icons.auto_awesome,
+          AppColors.secondary,
+          () => context.go('/insights'),
+        ), // Changed from tertiary
         const SizedBox(width: 12),
-        _buildActionButton(context, "History", Icons.history, AppColors.secondary, () => context.go('/history')),
+        _buildActionButton(
+          context,
+          "History",
+          Icons.history,
+          AppColors.secondary,
+          () => context.go('/history'),
+        ),
       ],
     );
   }
 
-  Widget _buildActionButton(BuildContext context, String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionButton(
+    BuildContext context,
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -247,7 +287,7 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 label,
-                style: GoogleFonts.outfit(
+                style: GoogleFonts.inter(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                   color: color,
@@ -275,11 +315,11 @@ class DashboardScreen extends StatelessWidget {
             ),
             title: Text(
               "Normal Sinus Rhythm",
-              style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
               "Mon, 10 Oct • 09:41 AM",
-              style: GoogleFonts.outfit(fontSize: 12),
+              style: GoogleFonts.inter(fontSize: 12),
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {}, // TODO: Open Details
