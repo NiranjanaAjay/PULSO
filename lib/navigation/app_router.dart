@@ -15,6 +15,7 @@ import '../features/history/history_screen.dart';
 import '../features/profile/profile_screen.dart';
 import 'shell_screen.dart';
 import '../screens/questionnaire_screen.dart';
+import '../features/ecg/pre_monitoring_questionnaire_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -69,6 +70,11 @@ class AppRouter {
                 path: '/ecg',
                 builder: (context, state) => const ECGScreen(),
                 routes: [
+                  GoRoute(
+                    path: 'premonitoring',
+                    parentNavigatorKey: _rootNavigatorKey, // Full screen
+                    builder: (context, state) => const PreMonitoringQuestionnaireScreen(),
+                  ),
                   GoRoute(
                     path: 'pairing',
                     parentNavigatorKey: _rootNavigatorKey, // Full screen

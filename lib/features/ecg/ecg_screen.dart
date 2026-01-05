@@ -8,6 +8,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/theme.dart';
+import '../../models/session_context.dart';
+import '../../services/session_context_service.dart';
 
 class ECGScreen extends StatefulWidget {
   const ECGScreen({super.key});
@@ -25,6 +27,9 @@ class _ECGScreenState extends State<ECGScreen> {
   BluetoothConnection? _connection;
   bool _isConnected = false;
   String _dataBuffer = "";
+
+  // Session Context
+  SessionContext? _sessionContext;
 
   // Configuration
   // Tuned for 7000-16000 range as requested
@@ -55,9 +60,28 @@ class _ECGScreenState extends State<ECGScreen> {
     if (_isConnected) {
       _disconnect();
     } else {
+      // Step 1: Get pre-monitoring context first
+      final SessionContext? sessionContext = await context.push('/ecg/premonitoring');
+      
+      if (sessionContext == null) {
+        // User cancelled the questionnaire
+        return;
+      }
+
+      // Store the session context
+      setState(() {
+        _sessionContext = sessionContext;
+      });
+
+      // Step 2: Now proceed to device pairing
       final BluetoothDevice? device = await context.push('/ecg/pairing');
       if (device != null) {
         _connectToDevice(device);
+      } else {
+        // User cancelled pairing, clear session context
+        setState(() {
+          _sessionContext = null;
+        });
       }
     }
   }
@@ -68,6 +92,7 @@ class _ECGScreenState extends State<ECGScreen> {
     setState(() {
       _isConnected = false;
       _dataBuffer = "";
+      _sessionContext = null; // Clear session context on disconnect
     });
   }
 
@@ -92,6 +117,13 @@ class _ECGScreenState extends State<ECGScreen> {
         _connection = connection;
         _isConnected = true;
       });
+
+      // Log session context when connection is established
+      if (_sessionContext != null) {
+        SessionContextService.logSessionContext(_sessionContext!);
+        print('ECG Session started with metadata:');
+        print(SessionContextService.toJsonString(_sessionContext!));
+      }
 
       connection.input!.listen(_onDataReceived).onDone(() {
         if (mounted) {
