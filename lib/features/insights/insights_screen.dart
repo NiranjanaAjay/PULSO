@@ -4,7 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme.dart';
 
 class InsightsScreen extends StatelessWidget {
-  const InsightsScreen({super.key});
+  final String? consultationReport;
+  const InsightsScreen({super.key, this.consultationReport});
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +26,10 @@ class InsightsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Latest Assessment Card
-            _buildLatestAssessment(context),
+            if (consultationReport != null)
+              _buildGeminiReportCard(consultationReport!)
+            else
+              _buildLatestAssessment(context),
             const SizedBox(height: 24),
             
             // Recommendations
@@ -161,6 +165,52 @@ class InsightsScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildGeminiReportCard(String report) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                "AI Consultation",
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textLight,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            report,
+            style: GoogleFonts.outfit(
+              fontSize: 15,
+              height: 1.5,
+              color: AppColors.textLight.withOpacity(0.8),
+            ),
+          ),
+        ],
       ),
     );
   }

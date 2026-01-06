@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:fl_chart/fl_chart.dart';
@@ -16,6 +17,8 @@ import '../../services/ecg_storage_service.dart';
 import '../../models/ecg_data.dart';
 import '../../models/session_context.dart';
 import '../../services/session_context_service.dart';
+import '../../services/gemini_service.dart';
+import '../../models/ecg_summary.dart';
 
 class ECGScreen extends StatefulWidget {
   const ECGScreen({super.key});
@@ -79,7 +82,7 @@ class _ECGScreenState extends State<ECGScreen> {
 
   Future<void> _toggleConnection() async {
     if (_isConnected) {
-      _disconnect();
+      await _endSessionAndAnalyze();
     } else {
       // Step 1: Get pre-monitoring context first
       final SessionContext? sessionContext = await context.push(
@@ -109,20 +112,17 @@ class _ECGScreenState extends State<ECGScreen> {
     }
   }
 
-  void _disconnect() async {
-    if (_isConnected && _totalRPeaks > 0) {
-      // Save session with image before disconnecting
-      await _saveSessionWithImage();
-    }
-
+  void _disconnect() {
     _connection?.dispose();
     _connection = null;
-    setState(() {
-      _isConnected = false;
-      _dataBuffer = "";
-      _currentHeartRate = 0;
-      _totalRPeaks = 0;
-    });
+    if (mounted) {
+      setState(() {
+        _isConnected = false;
+        _dataBuffer = "";
+        _currentHeartRate = 0;
+        _totalRPeaks = 0;
+      });
+    }
     // Reset processor for next session
     _ecgProcessor.reset();
     _rPeakXPositions.clear();
@@ -233,74 +233,6 @@ class _ECGScreenState extends State<ECGScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// Save ECG session with captured chart image
-  Future<void> _saveSessionWithImage() async {
-    try {
-      // Show loading indicator
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Saving session...'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-
-      // Get current user
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) {
-        print('User not logged in, cannot save session');
-        return;
-      }
-
-      // Capture chart image
-      final imageFile = await _captureService.captureChart(
-        userId: userId,
-        sessionId: DateTime.now().millisecondsSinceEpoch.toString(),
-      );
-
-      if (imageFile == null) {
-        print('Failed to capture chart image');
-        if (mounted) {
-          _showSnackBar('Failed to capture ECG image');
-        }
-        return;
-      }
-
-      // Create session object
-      final session = ECGSession(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        userId: userId,
-        startTime: _sessionStartTime ?? DateTime.now(),
-        endTime: DateTime.now(),
-        durationSeconds: DateTime.now()
-            .difference(_sessionStartTime ?? DateTime.now())
-            .inSeconds,
-        samples: [], // Not storing raw samples
-        rPeaks: _ecgProcessor.getDetectedRPeaks(),
-      );
-
-      // Save session with image
-      final readingId = await _storageService.saveSessionWithImage(
-        session: session,
-        imageFile: imageFile,
-      );
-
-      // Clean up temporary file
-      await _captureService.deleteTemporaryImage(imageFile);
-
-      if (readingId != null && mounted) {
-        _showSnackBar('Session saved successfully!');
-      } else if (mounted) {
-        _showSnackBar('Failed to save session');
-      }
-    } catch (e) {
-      print('Error saving session: $e');
-      if (mounted) {
-        _showSnackBar('Error saving session: $e');
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -532,6 +464,112 @@ class _ECGScreenState extends State<ECGScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _endSessionAndAnalyze() async {
+    // 1. Prepare Summary Data
+    final durationSeconds = (_xValue / 860).round();
+    final double avgHr = durationSeconds > 0
+        ? (_totalRPeaks / durationSeconds) * 60
+        : 0;
+    
+    double totalSignal = 0;
+    for (var spot in _spots) {
+      totalSignal += spot.y;
+    }
+    final double avgSignal = _spots.isNotEmpty ? totalSignal / _spots.length : 0;
+
+    final summary = EcgSummary(
+      averageHeartRate: avgHr,
+      totalRPeaks: _totalRPeaks,
+      durationSeconds: durationSeconds,
+      averageSignalValue: avgSignal,
+    );
+
+    final contextForAnalysis = _sessionContext;
+    if (contextForAnalysis == null) {
+      _disconnect();
+      return;
+    }
+
+    // 2. Show Loading Dialog (Persistent)
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text("Saving & Analyzing..."),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    File? imageFile;
+    try {
+      // 3. Capture Chart Image
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId != null) {
+        imageFile = await _captureService.captureChart(
+          userId: userId,
+          sessionId: DateTime.now().millisecondsSinceEpoch.toString(),
+        );
+      }
+
+      // 4. Save Session (Background)
+      if (userId != null && imageFile != null) {
+        final session = ECGSession(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          userId: userId,
+          startTime: _sessionStartTime ?? DateTime.now(),
+          endTime: DateTime.now(),
+          durationSeconds: durationSeconds,
+          samples: [],
+          rPeaks: _ecgProcessor.getDetectedRPeaks(),
+          averageHeartRate: avgHr,
+          totalRPeaks: _totalRPeaks,
+        );
+        
+        // Save without awaiting to speed up analysis UI? 
+        // No, we should await to ensure data integrity before leaving.
+        await _storageService.saveSessionWithImage(
+          session: session,
+          imageFile: imageFile,
+        );
+      }
+
+      // 5. Generate Insights (with Image)
+      final geminiService = GeminiService();
+      final report = await geminiService.generateConsultation(
+        contextForAnalysis,
+        summary,
+        chartImage: imageFile,
+      );
+
+      // 6. Navigate
+      if (mounted) {
+        Navigator.of(context).pop(); // Close dialog
+        context.push('/insights', extra: report);
+      }
+    } catch (e) {
+      print("Error in analysis flow: $e");
+      if (mounted) Navigator.of(context).pop(); // Close dialog on error
+    } finally {
+      // 7. Cleanup
+      _disconnect();
+      if (imageFile != null) {
+        // Delay deletion slightly or ensure service is done
+        await _captureService.deleteTemporaryImage(imageFile);
+      }
+    }
   }
 
   Widget _buildMetric(String label, String value, IconData icon, Color color) {

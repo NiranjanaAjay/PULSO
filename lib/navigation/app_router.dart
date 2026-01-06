@@ -95,7 +95,10 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/insights',
-                builder: (context, state) => const InsightsScreen(),
+                builder: (context, state) {
+                  final report = state.extra as String?;
+                  return InsightsScreen(consultationReport: report);
+                },
                 routes: [
                   GoRoute(
                     path: 'report',
