@@ -73,4 +73,66 @@ class ApiService {
       client.close();
     }
   }
+
+  Future<Map<String, dynamic>> sendChatMessage(
+    String message, {
+    String? sessionId,
+  }) async {
+    final session = _supabase.auth.currentSession;
+    if (session == null) throw Exception('User not authenticated');
+
+    final token = session.accessToken;
+    final url = Uri.parse('${BackendConfig.apiUrl}/chat/message');
+    final client = HttpClient();
+
+    try {
+      client.badCertificateCallback = ((cert, host, port) => true);
+      final request = await client.postUrl(url);
+      request.headers.set('Authorization', 'Bearer $token');
+      request.headers.set('Content-Type', 'application/json');
+
+      final body = {'message': message};
+      if (sessionId != null) {
+        body['session_id'] = sessionId;
+      }
+      request.write(jsonEncode(body));
+
+      final response = await request.close();
+      final responseBody = await response.transform(utf8.decoder).join();
+
+      if (response.statusCode == 200) {
+        return jsonDecode(responseBody) as Map<String, dynamic>;
+      } else {
+        throw Exception('Chat failed: ${response.statusCode} - $responseBody');
+      }
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<Map<String, dynamic>> getChatHistory({int limit = 10}) async {
+    final session = _supabase.auth.currentSession;
+    if (session == null) throw Exception('User not authenticated');
+
+    final token = session.accessToken;
+    final url = Uri.parse('${BackendConfig.apiUrl}/chat/history?limit=$limit');
+    final client = HttpClient();
+
+    try {
+      client.badCertificateCallback = ((cert, host, port) => true);
+      final request = await client.getUrl(url);
+      request.headers.set('Authorization', 'Bearer $token');
+
+      final response = await request.close();
+      final responseBody = await response.transform(utf8.decoder).join();
+
+      if (response.statusCode == 200) {
+        return jsonDecode(responseBody) as Map<String, dynamic>;
+      } else {
+        throw Exception('Failed to get chat history: ${response.statusCode}');
+      }
+    } finally {
+      client.close();
+    }
+  }
 }

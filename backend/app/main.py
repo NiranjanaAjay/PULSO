@@ -11,7 +11,7 @@ from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager
 
 from .config import get_settings
-from .routers import ecg, analysis, user
+from .routers import ecg, analysis, user, chat
 
 
 # Rate limiter instance
@@ -82,6 +82,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(ecg.router, prefix="/api/v1/ecg", tags=["ECG"])
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["Analysis"])
 app.include_router(user.router, prefix="/api/v1/user", tags=["User"])
+app.include_router(chat.router, prefix="/api/v1", tags=["Chat"])
 
 
 # Health check endpoint

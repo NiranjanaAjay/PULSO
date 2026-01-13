@@ -36,10 +36,12 @@ class AuthService {
   // Sign in with Google
   Future<AuthResponse> signInWithGoogle() async {
     try {
-      // Initialize Google Sign-In without serverClientId
-      // This uses the native platform configuration from Firebase
+      // Initialize Google Sign-In with Web Client ID for Supabase
+      // The serverClientId is the Web Client ID (NOT Android) from Google Cloud Console
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
+        serverClientId:
+            '1021301353696-1arqhhf9h8iamssb0rguep14qkqs4g1p.apps.googleusercontent.com',
       );
 
       // Sign out first to ensure account picker shows

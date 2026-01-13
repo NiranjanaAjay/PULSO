@@ -239,10 +239,22 @@ class SupabaseService:
     async def save_analysis(self, reading_id: int, result: Dict) -> int:
         """Save AI analysis results"""
         try:
+            # Convert recommendations list to JSON string if present
+            recommendations = result.get("recommendations", [])
+            if isinstance(recommendations, list):
+                import json
+                recommendations = json.dumps(recommendations)
+            
             data = {
                 "reading_id": reading_id,
                 "prediction": result.get("prediction", ""),
                 "confidence_score": result.get("confidence_score", 0.0),
+                "risk_level": result.get("risk_level", "low"),
+                "recommendations": recommendations,
+                "clinical_analysis": result.get("clinical_analysis", ""),
+                "diagnosis_summary": result.get("diagnosis_summary", ""),
+                "detailed_analysis": result.get("detailed_analysis", ""),
+                "summary": result.get("summary", ""),
             }
             
             insert_result = self.client.table("analysis") \
@@ -272,6 +284,7 @@ class SupabaseService:
                 .execute()
             
             if not reading.data:
+                print(f"[get_analysis] Reading {reading_id} not found for user {user_id}")
                 return None
             
             result = self.client.table("analysis") \
@@ -283,9 +296,19 @@ class SupabaseService:
                 .execute()
             
             if result.data:
-                return AnalysisResponse(**result.data)
+                # Parse recommendations from JSON if needed
+                import json
+                data = result.data
+                if isinstance(data.get("recommendations"), str):
+                    try:
+                        data["recommendations"] = json.loads(data["recommendations"])
+                    except:
+                        data["recommendations"] = []
+                return AnalysisResponse(**data)
+            print(f"[get_analysis] No analysis found for reading_id {reading_id}")
             return None
-        except:
+        except Exception as e:
+            print(f"[get_analysis] Error: {e}")
             return None
     
     async def get_analysis_history(
@@ -316,3 +339,52 @@ class SupabaseService:
             return [AnalysisHistoryItem(**a) for a in (result.data or [])]
         except:
             return []
+    
+    # ==================== Chat Operations ====================
+    
+    async def save_chat_message(
+        self,
+        user_id: str,
+        user_message: str,
+        ai_response: str,
+        intent: str,
+        session_ids: list
+    ) -> None:
+        """Save a chat message to history"""
+        try:
+            self.client.table("chat_history").insert({
+                "user_id": user_id,
+                "user_message": user_message,
+                "ai_response": ai_response,
+                "intent": intent,
+                "session_ids": session_ids
+            }).execute()
+        except Exception as e:
+            print(f"Error saving chat: {e}")
+    
+    async def get_chat_history(self, user_id: str, limit: int = 20) -> list:
+        """Get recent chat history for user"""
+        try:
+            result = self.client.table("chat_history") \
+                .select("*") \
+                .eq("user_id", user_id) \
+                .order("created_at", desc=True) \
+                .limit(limit) \
+                .execute()
+            return result.data or []
+        except:
+            return []
+    
+    async def get_recent_sessions_basic(self, user_id: str, limit: int = 5) -> list:
+        """Get basic info about recent sessions (for chat context)"""
+        try:
+            result = self.client.table("ecg_readings") \
+                .select("id, created_at, average_heart_rate, duration_seconds") \
+                .eq("user_id", user_id) \
+                .order("created_at", desc=True) \
+                .limit(limit) \
+                .execute()
+            return result.data or []
+        except:
+            return []
+

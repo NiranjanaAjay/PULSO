@@ -35,89 +35,157 @@ class ECGProcessor {
 
   ECGProcessor({required this.samplingRate}) {
     // Calculate parameters based on sampling rate
-    // INCREASED refractory period to prevent double-detection
-    _refractoryPeriodSamples = (0.3 * samplingRate)
-        .round(); // 300ms refractory period (was 200ms)
+    // Reduced refractory period to 250ms for better detection
+    _refractoryPeriodSamples = (0.25 * samplingRate)
+        .round(); // 250ms refractory period
     _integrationWindowSize = (0.15 * samplingRate)
         .round(); // 150ms integration window
-    _learningRate =
-        0.1; // REDUCED learning rate for more stable thresholds (was 0.125)
+    _learningRate = 0.2; // Higher learning rate for faster adaptation
 
     // Initialize thresholds
     _thresholdI1 = 0;
     _thresholdI2 = 0;
   }
 
-  /// Process a single ECG sample through the Pan-Tompkins pipeline
+  // Warmup tracking for initial threshold calibration
+  int _warmupSamples = 0;
+  double _warmupMaxValue = 0;
+  // Increased warmup to 400 samples (~465ms at 860Hz) to allow scaled filters to stabilize
+  static const int _warmupPeriod = 400;
+
+  /// Process a single ECG sample through simplified peak detection
   /// Returns the filtered value and whether an R-peak was detected
   (double filteredValue, bool isRPeak) processSample(double rawValue) {
     _sessionStartTime ??= DateTime.now();
-
-    // Stage 1: Bandpass Filter (5-15 Hz)
-    double lowPassed = _lowPassFilter(rawValue);
-    double bandPassed = _highPassFilter(lowPassed);
-
-    // Stage 2: Derivative (emphasize slope)
-    double derivative = _derivativeFilter(bandPassed);
-
-    // Stage 3: Squaring (make positive, emphasize larger values)
-    double squared = derivative * derivative;
-
-    // Stage 4: Moving Window Integration
-    double integrated = _movingWindowIntegration(squared);
-
-    // Stage 5: R-peak Detection
-    bool isRPeak = _detectRPeak(integrated, rawValue);
-
     _sampleIndex++;
 
-    return (integrated, isRPeak);
+    // Simple moving average for smoothing (reduces noise)
+    _rawBuffer.add(rawValue);
+    if (_rawBuffer.length > 5) _rawBuffer.removeFirst();
+
+    double smoothedValue =
+        _rawBuffer.reduce((a, b) => a + b) / _rawBuffer.length;
+
+    // Track running statistics for adaptive threshold
+    _updateRunningStats(smoothedValue);
+
+    // Check refractory period (minimum time between peaks)
+    if (_sampleIndex - _lastRPeakIndex < _refractoryPeriodSamples) {
+      return (smoothedValue, false);
+    }
+
+    // Simple R-peak detection: look for local maximum above threshold
+    bool isRPeak = _detectSimplePeak(smoothedValue, rawValue);
+
+    return (smoothedValue, isRPeak);
   }
 
-  /// Low-pass filter: y[n] = 2*y[n-1] - y[n-2] + x[n] - 2*x[n-6] + x[n-12]
-  /// Cutoff frequency: ~15 Hz
+  // Buffer for raw signal smoothing
+  final Queue<double> _rawBuffer = Queue();
+
+  // Running statistics for adaptive threshold
+  double _runningMax = 0;
+  double _runningMin = double.infinity;
+  double _runningMean = 0;
+  int _statsCount = 0;
+
+  void _updateRunningStats(double value) {
+    _statsCount++;
+
+    // Update running mean
+    _runningMean = _runningMean + (value - _runningMean) / _statsCount;
+
+    // Track max/min with decay for adaptation
+    if (value > _runningMax) {
+      _runningMax = value;
+    } else {
+      _runningMax = _runningMax * 0.9999 + value * 0.0001; // Slow decay
+    }
+
+    if (value < _runningMin || _runningMin == double.infinity) {
+      _runningMin = value;
+    } else {
+      _runningMin = _runningMin * 0.9999 + value * 0.0001; // Slow decay
+    }
+  }
+
+  /// Simple peak detection using adaptive threshold
+  bool _detectSimplePeak(double smoothedValue, double rawValue) {
+    // Need enough samples for statistics
+    if (_statsCount < 100) return false;
+
+    // Calculate adaptive threshold: 60% between mean and max
+    double signalRange = _runningMax - _runningMin;
+    double threshold = _runningMean + (signalRange * 0.4);
+
+    // Check if current value is above threshold
+    if (smoothedValue < threshold) return false;
+
+    // Check if it's a local maximum (higher than neighbors)
+    if (_rawBuffer.length < 3) return false;
+
+    final list = _rawBuffer.toList();
+    bool isLocalMax =
+        list[list.length - 1] >= list[list.length - 2] &&
+        list[list.length - 2] > list[list.length - 3];
+
+    if (!isLocalMax) return false;
+
+    // Found a peak - register it
+    _registerRPeak(smoothedValue, rawValue);
+    return true;
+  }
+
+  /// Low-pass filter: y[n] = 2*y[n-1] - y[n-2] + x[n] - 2*x[n-d1] + x[n-d2]
+  /// Original Pan-Tompkins: d1=6, d2=12 for 200Hz -> Cutoff ~15 Hz
+  /// Scaled for 860Hz: d1=26, d2=52 to maintain ~15 Hz cutoff
   double _lowPassFilter(double input) {
     _lowPassBuffer.add(input);
 
-    if (_lowPassBuffer.length < 13) {
+    // Need 53 samples for 860Hz (scaled from 13 at 200Hz)
+    if (_lowPassBuffer.length < 53) {
       return input;
     }
 
-    if (_lowPassBuffer.length > 13) {
+    if (_lowPassBuffer.length > 53) {
       _lowPassBuffer.removeFirst();
     }
 
     final list = _lowPassBuffer.toList();
+    // Scaled delays: 6->26, 12->52 for 860Hz
     final output =
         2 * (list.length >= 2 ? list[list.length - 2] : 0) -
         (list.length >= 3 ? list[list.length - 3] : 0) +
         list[list.length - 1] -
-        2 * (list.length >= 7 ? list[list.length - 7] : 0) +
-        (list.length >= 13 ? list[list.length - 13] : 0);
+        2 * (list.length >= 27 ? list[list.length - 27] : 0) +
+        (list.length >= 53 ? list[list.length - 53] : 0);
 
     return output / 32.0; // Normalize
   }
 
-  /// High-pass filter: y[n] = y[n-1] - x[n]/32 + x[n-16] - x[n-17] + x[n-32]/32
-  /// Cutoff frequency: ~5 Hz
+  /// High-pass filter: y[n] = y[n-1] - x[n]/32 + x[n-d1] - x[n-d2] + x[n-d3]/32
+  /// Original Pan-Tompkins: d1=16, d2=17, d3=32 for 200Hz -> Cutoff ~5 Hz
+  /// Scaled for 860Hz: d1=69, d2=73, d3=138 to maintain ~5 Hz cutoff
   double _highPassFilter(double input) {
     _highPassBuffer.add(input);
 
-    if (_highPassBuffer.length < 33) {
+    // Need 139 samples for 860Hz (scaled from 33 at 200Hz)
+    if (_highPassBuffer.length < 139) {
       return input;
     }
 
-    if (_highPassBuffer.length > 33) {
+    if (_highPassBuffer.length > 139) {
       _highPassBuffer.removeFirst();
     }
 
     final list = _highPassBuffer.toList();
+    // Scaled delays: 16->69, 17->73, 32->138 for 860Hz
     final output =
         (list.length >= 2 ? list[list.length - 2] : 0) -
         list[list.length - 1] / 32 +
-        (list.length >= 17 ? list[list.length - 17] : 0) -
-        (list.length >= 18 ? list[list.length - 18] : 0) +
-        (list.length >= 33 ? list[list.length - 33] : 0) / 32;
+        (list.length >= 70 ? list[list.length - 70] : 0) -
+        (list.length >= 74 ? list[list.length - 74] : 0) +
+        (list.length >= 139 ? list[list.length - 139] : 0) / 32;
 
     return output;
   }
@@ -160,22 +228,52 @@ class ECGProcessor {
 
   /// Adaptive thresholding and R-peak detection
   bool _detectRPeak(double integratedValue, double rawValue) {
+    // Track warmup period to calibrate thresholds
+    if (_warmupSamples < _warmupPeriod) {
+      _warmupSamples++;
+      if (integratedValue > _warmupMaxValue) {
+        _warmupMaxValue = integratedValue;
+      }
+      // Initialize thresholds after warmup
+      if (_warmupSamples == _warmupPeriod && _warmupMaxValue > 0) {
+        _signalPeak = _warmupMaxValue * 0.8;
+        _noisePeak = _warmupMaxValue * 0.2;
+        _updateThresholds();
+      }
+      return false;
+    }
+
     // Check refractory period
     if (_sampleIndex - _lastRPeakIndex < _refractoryPeriodSamples) {
       return false;
     }
 
-    // Initialize thresholds on first samples
+    // Fallback threshold initialization if warmup failed
     if (_thresholdI1 == 0) {
-      _thresholdI1 = integratedValue * 0.5;
+      _thresholdI1 = integratedValue * 0.3;
       _thresholdI2 = _thresholdI1 * 0.5;
       return false;
     }
 
+    // Dynamic threshold recalibration if signal changes dramatically
+    if (integratedValue > _signalPeak * 3 && _signalPeak > 0) {
+      // Signal amplitude changed, recalibrate
+      _signalPeak = integratedValue * 0.5;
+      _updateThresholds();
+    }
+
+    // Missed beat detection: if no R-peak for too long, lower threshold
+    final samplesSinceLastPeak = _sampleIndex - _lastRPeakIndex;
+    final maxExpectedInterval = (samplingRate * 2).toInt(); // 2 seconds max
+    if (samplesSinceLastPeak > maxExpectedInterval && _thresholdI1 > 0) {
+      // Lower threshold by 10% to catch weaker peaks
+      _thresholdI1 *= 0.9;
+      _thresholdI2 *= 0.9;
+    }
+
     // Check if current value exceeds threshold
     if (integratedValue > _thresholdI1) {
-      // Potential R-peak detected
-      // Look for local maximum in a small window
+      // Potential R-peak detected - check for local maximum
       if (_isLocalMaximum(integratedValue)) {
         _registerRPeak(integratedValue, rawValue);
         return true;
@@ -191,14 +289,25 @@ class ECGProcessor {
   }
 
   /// Check if current sample is a local maximum
+  /// Uses a small window to confirm we're at a peak
   bool _isLocalMaximum(double currentValue) {
-    if (_integrationBuffer.length < 3) return false;
+    if (_integrationBuffer.length < 5) return false;
 
     final list = _integrationBuffer.toList();
     final current = list[list.length - 1];
-    final prev = list[list.length - 2];
+    final prev1 = list[list.length - 2];
+    final prev2 = list[list.length - 3];
 
-    return current >= prev; // Simple check, can be enhanced
+    // Peak should be higher than the previous 2 samples
+    // This helps filter out noise spikes
+    bool isPeak = current >= prev1 && prev1 > prev2;
+
+    // Additional check: current value should be significantly above the mean
+    if (isPeak && _signalPeak > 0) {
+      isPeak = current > _signalPeak * 0.4; // At least 40% of signal peak
+    }
+
+    return isPeak;
   }
 
   /// Register a detected R-peak
@@ -248,8 +357,8 @@ class ECGProcessor {
 
   /// Update adaptive thresholds
   void _updateThresholds() {
-    // INCREASED threshold multiplier to be more selective (was 0.25)
-    _thresholdI1 = _noisePeak + 0.35 * (_signalPeak - _noisePeak);
+    // Reduced threshold multiplier for more sensitive detection
+    _thresholdI1 = _noisePeak + 0.25 * (_signalPeak - _noisePeak);
     _thresholdI2 = 0.5 * _thresholdI1;
   }
 
@@ -302,6 +411,8 @@ class ECGProcessor {
     _thresholdI1 = 0;
     _thresholdI2 = 0;
     _lastRPeakIndex = -1000;
+    _warmupSamples = 0;
+    _warmupMaxValue = 0;
   }
 
   /// Get current session statistics

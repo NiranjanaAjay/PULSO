@@ -37,6 +37,11 @@ dependencies:
   screenshot: ^3.0.0
   path_provider: ^2.1.1
   shared_preferences: ^2.3.5
+  
+  # PDF Export & Sharing
+  pdf: ^3.10.8
+  printing: ^5.12.0
+  share_plus: ^7.2.1
 
 dev_dependencies:
   flutter_test:

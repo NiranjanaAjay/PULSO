@@ -198,7 +198,11 @@ class AnalysisResult {
   final double confidenceScore;
   final String? riskLevel;
   final List<String>? recommendations;
-  final String? diagnosisSummary;
+  final String? clinicalAnalysis; // Professional-level analysis
+  final String? diagnosisSummary; // Layman-friendly explanation
+  final String?
+  detailedAnalysis; // Structured breakdown (rhythm, rate, HRV, significance)
+  final String? summary; // One-line summary takeaway
   final DateTime createdAt;
 
   AnalysisResult({
@@ -208,7 +212,10 @@ class AnalysisResult {
     required this.confidenceScore,
     this.riskLevel,
     this.recommendations,
+    this.clinicalAnalysis,
     this.diagnosisSummary,
+    this.detailedAnalysis,
+    this.summary,
     required this.createdAt,
   });
 
@@ -222,7 +229,10 @@ class AnalysisResult {
       recommendations: (json['recommendations'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList(),
+      clinicalAnalysis: json['clinical_analysis'] as String?,
       diagnosisSummary: json['diagnosis_summary'] as String?,
+      detailedAnalysis: json['detailed_analysis'] as String?,
+      summary: json['summary'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from typing import List
+from datetime import datetime
 
 from ..utils.auth import get_current_user, CurrentUser
 from ..models.analysis import AnalysisResponse, AnalysisHistoryItem
@@ -69,6 +70,7 @@ async def request_analysis(
     return AnalysisResponse(
         analysis_id=analysis_id,
         reading_id=reading_id,
+        created_at=datetime.now(),
         **result
     )
 

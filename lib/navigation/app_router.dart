@@ -17,6 +17,7 @@ import '../features/profile/profile_screen.dart';
 import 'shell_screen.dart';
 import '../screens/questionnaire_screen.dart';
 import '../features/ecg/pre_monitoring_questionnaire_screen.dart';
+import '../features/chat/chat_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -47,6 +48,9 @@ class AppRouter {
         builder: (context, state) =>
             const QuestionnaireScreen(), // Or whatever your class name is
       ),
+
+      // Chat Screen (Full screen, outside shell)
+      GoRoute(path: '/chat', builder: (context, state) => const ChatScreen()),
 
       // Authenticated Shell Flow
       StatefulShellRoute.indexedStack(

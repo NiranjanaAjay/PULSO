@@ -150,16 +150,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       status = "Loading...";
       message = "Fetching latest data...";
     } else if (_lastSession != null) {
-      // Simple heuristic: if HR is within normal range (60-100)
+      // Check heart rate status
       final hr = _lastSession!.averageHeartRate ?? 0;
-      if (hr >= 60 && hr <= 100) {
+
+      // If HR is 0 or within normal range (60-100), show stable
+      // Also show stable for simulated/estimated values (typically 65-90)
+      if (hr == 0 || (hr >= 55 && hr <= 110)) {
         status = "Stable";
-        message = "Your heart rhythm appears normal.";
+        if (hr == 0) {
+          message = "Your recent session was recorded.";
+        } else {
+          message = "Your heart rhythm appears normal.";
+        }
         color = AppColors.success; // Assuming green
         icon = Icons.check_circle_outline;
       } else {
         status = "Attention";
-        message = "Heart rate irregularity detected.";
+        message = "Heart rate outside normal range.";
         color = AppColors.error; // Assuming red/orange
         icon = Icons.warning_amber_rounded;
       }
@@ -277,13 +284,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildMetricsStrip() {
-    // Extract real metrics
+    // Extract real metrics from latest session
     String bpm = "--";
-    String hrv = "--"; // Not yet calculated in session model
-    String stress = "Low"; // Placeholder until connected to Questionnaire
+    String hrv = "--";
+    String stress = "--";
 
-    if (_lastSession?.averageHeartRate != null) {
-      bpm = "${_lastSession!.averageHeartRate!.toInt()} bpm";
+    if (_lastSession != null) {
+      // Heart Rate
+      if (_lastSession!.averageHeartRate != null) {
+        bpm = "${_lastSession!.averageHeartRate!.toInt()} bpm";
+      }
+
+      // Debug: print R-peaks count
+      print('DEBUG Dashboard: R-peaks count = ${_lastSession!.rPeaks.length}');
+
+      // Calculate HRV (SDNN) from R-peaks if available
+      if (_lastSession!.rPeaks.length >= 2) {
+        final rrIntervals = _lastSession!.rPeaks
+            .where((p) => p.rrInterval > 0)
+            .map((p) => p.rrInterval)
+            .toList();
+
+        if (rrIntervals.length >= 2) {
+          // Calculate SDNN (Standard Deviation of NN intervals)
+          final meanRR =
+              rrIntervals.reduce((a, b) => a + b) / rrIntervals.length;
+          double sumSquaredDiff = 0;
+          for (final rr in rrIntervals) {
+            sumSquaredDiff += (rr - meanRR) * (rr - meanRR);
+          }
+          final sdnn = (sumSquaredDiff / (rrIntervals.length - 1)).abs();
+          final sdnnSqrt = (sdnn > 0) ? (sdnn * 1000).toInt() : 0;
+          hrv = "$sdnnSqrt ms";
+
+          // Derive stress level from HRV (SDNN)
+          // Higher HRV = Lower stress, Lower HRV = Higher stress
+          if (sdnnSqrt > 100) {
+            stress = "Low";
+          } else if (sdnnSqrt > 50) {
+            stress = "Moderate";
+          } else if (sdnnSqrt > 20) {
+            stress = "High";
+          } else {
+            stress = "Very High";
+          }
+        }
+      } else if (_lastSession!.averageHeartRate != null) {
+        // Fallback: Estimate HRV/stress from heart rate if no R-peaks
+        final avgHR = _lastSession!.averageHeartRate!;
+        // Normal resting HR typically means better HRV
+        if (avgHR >= 60 && avgHR <= 80) {
+          hrv = "Good";
+          stress = "Low";
+        } else if (avgHR > 80 && avgHR <= 100) {
+          hrv = "Fair";
+          stress = "Moderate";
+        } else {
+          hrv = "Check";
+          stress = "High";
+        }
+      }
     }
 
     return Row(
@@ -347,10 +407,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           "Consult AI",
           Icons.auto_awesome,
           AppColors.secondary,
-          () => context.go(
-            '/insights',
-            extra: _lastSession?.id,
-          ), // Might need argument
+          () => context.push('/chat'),
         ),
         const SizedBox(width: 12),
         _buildActionButton(
